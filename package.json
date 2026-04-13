@@ -1,0 +1,21 @@
+{
+  "name": "crucible",
+  "version": "1.0.0",
+  "description": "Where discipline meets firepower. Claude Code plugin combining disciplined development methodology with multi-agent orchestration.",
+  "type": "module",
+  "license": "MIT",
+  "author": "zanijr",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zanijr/crucible.git"
+  },
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "orchestration",
+    "tdd",
+    "code-review",
+    "multi-agent",
+    "skills"
+  ]
+}

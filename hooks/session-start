@@ -1,0 +1,9 @@
+#!/bin/bash
+# Crucible session-start hook
+# Restores project state after compaction or session restart
+
+STATE_FILE=".crucible/PROJECT_STATE.md"
+
+if [ -f "$STATE_FILE" ]; then
+  echo "Crucible: Found project state at $STATE_FILE — read it to resume work."
+fi

@@ -1,0 +1,18 @@
+{
+  "name": "crucible-marketplace",
+  "description": "Crucible plugin marketplace — disciplined development + multi-agent orchestration",
+  "owner": {
+    "name": "zanijr"
+  },
+  "plugins": [
+    {
+      "name": "crucible",
+      "description": "Where discipline meets firepower. Disciplined development methodology + multi-agent orchestration for Claude Code.",
+      "version": "1.0.0",
+      "source": "./",
+      "author": {
+        "name": "zanijr"
+      }
+    }
+  ]
+}
