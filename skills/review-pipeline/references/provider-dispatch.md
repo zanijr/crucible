@@ -67,6 +67,17 @@ Read `stdout` as the agent output. `--sandbox read-only` guarantees no file writ
 - `timeout`: `300000` ms (5 minutes) unless `cli.<provider>.timeout_ms` overrides.
 - Do NOT set `run_in_background: true` — the dispatching skill needs stdout synchronously to parse.
 
+### Inlining context (CRITICAL)
+
+Unlike Claude subagents, **external CLIs in non-interactive mode do NOT autonomously run shell commands** (no `git diff`, no file reads). You must **pre-compute everything the reviewer needs and embed it in the heredoc body**.
+
+For reviewer roles, this means:
+1. Before dispatch, run `git diff main...{branch} -U10 -- <changed files>` yourself.
+2. Append the diff text into the heredoc body, after the specialist prompt.
+3. Tell the reviewer to base its findings on "the diff below" rather than instructing it to run `git diff` itself.
+
+Claude subagents can be told "run git diff" because they have shell access. Gemini and Codex CLIs treat the prompt as text-only input and will hallucinate or refuse if asked to invoke commands.
+
 ## Parallel Dispatch
 
 When multiple roles need to run in parallel (e.g., review-pipeline's 5 reviewers):
@@ -81,7 +92,12 @@ External CLIs produce the same output format as Claude subagents **because the p
 - Reviewers → JSON array of findings (see review-pipeline's Finding Schema).
 - Workers → final message ending in `STATUS: DONE|DONE_WITH_CONCERNS|NEEDS_CONTEXT|BLOCKED`.
 
-Gemini and Codex both emit stdout text. Extract the JSON array / STATUS line the same way you would for Claude.
+Gemini and Codex both emit stdout text. Extract the JSON array / STATUS line by **scanning** stdout — both CLIs may surround the actual response with envelope content:
+
+- **Gemini preamble:** May print a deprecation warning (`The system configuration contains deprecated settings: [experimental.plan]...`) before the response. Non-blocking; just skip past it.
+- **Codex preamble:** Prints a session header (`workdir`, `model`, `provider`, `approval`, `sandbox`, `session id`) before the response, plus a `tokens used` footer after.
+
+Parse rule: locate the first `[` (for JSON arrays) or the first line matching `^STATUS:` (for worker output) in stdout, and extract from there. Discard everything before. For arrays, locate the matching `]` to bound the extraction.
 
 ### Malformed output handling
 

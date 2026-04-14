@@ -33,8 +33,9 @@ Gemini writes results to stdout. Expected format depends on the role:
 
 ### Known quirks
 
-- **Deprecated `experimental.plan` warning** at startup is non-blocking. To silence: remove `experimental.plan` from `~/.gemini/settings.json`.
+- **Deprecated `experimental.plan` warning** at startup is non-blocking but appears as a **preamble in stdout** before any response. The dispatcher's parser must scan past it (locate first `[` for JSON arrays). Verified during v1.1 testing on Gemini CLI 0.37.2. To silence the warning entirely: remove `experimental.plan` from `~/.gemini/settings.json`.
 - Gemini sometimes prepends/appends commentary despite prompt instructing JSON-only. When parsing fails, save raw output to `.crucible/reviews/<role>.raw.txt` and retry per `retry` config.
+- **Gemini CLI in non-interactive mode does NOT autonomously run shell commands.** Reviewer prompts that say "run git diff to see changed files" produce hallucination or refusal — always inline the diff into the heredoc body. See `../../review-pipeline/references/provider-dispatch.md` § "Inlining context".
 
 ## Codex CLI
 
@@ -68,7 +69,9 @@ Codex writes results to stdout. Same output conventions as Gemini (JSON for revi
 
 ### Known quirks
 
+- **Session preamble in stdout:** Codex prints a header before the response listing `workdir`, `model`, `provider`, `approval`, `sandbox`, `reasoning effort`, and `session id`. After the response, it prints a `tokens used N` footer. The dispatcher's parser must skip past these (scan for first `[` for JSON arrays).
 - `--sandbox read-only` suppresses shell commands inside Codex's turns. If you see "tool call blocked" messages in output, that's expected — it just means Codex tried to run something and was correctly prevented. The review/advice itself comes through.
+- **Codex CLI in `exec` mode does NOT autonomously run shell commands either** (read-only sandbox suppresses them). Reviewer prompts must inline the diff into the heredoc body. See `../../review-pipeline/references/provider-dispatch.md` § "Inlining context".
 - Codex output is generally well-formed JSON when asked, but like Gemini may occasionally add commentary. Handle via retry + raw-output fallback.
 
 ## Timeout and Retry
