@@ -37,9 +37,15 @@ git diff main...HEAD --name-only
 
 If on `main`, use the most recent set of commits instead.
 
+### Step 1.5: Resolve Providers
+
+For each of the 5 reviewer roles (`security`, `quality`, `waste`, `tests`, `performance`), resolve which AI provider to use. See `references/provider-dispatch.md` for the resolution rules.
+
+Summary: check `.crucible/providers.json`, fall back to `~/.claude/crucible/providers.json`, fall back to `claude`. If no config exists, every role is `claude` — identical to v1.0.0 behavior.
+
 ### Step 2: Dispatch 5 Reviewers in Parallel
 
-Send **5 Agent tool calls in a single message** — one per reviewer type. Each agent receives its specialized prompt from `references/`:
+Send **5 dispatch calls in a single message** — one per reviewer type. Each reviewer may target Claude (via `Agent` tool), Gemini (via `Bash` tool), or Codex (via `Bash` tool) depending on the resolved provider. See `references/provider-dispatch.md` for the exact invocation shape per provider.
 
 | Reviewer | Prompt File | Focus |
 |----------|-------------|-------|
@@ -53,6 +59,8 @@ Each reviewer prompt instructs the agent to:
 1. Run `git diff main...{branch} --name-only` to scope changes
 2. Review ONLY changed files for their specialist area
 3. Output a JSON array of findings
+
+The **same prompt text** is fed to whichever provider is assigned for that role — JSON finding schema is provider-agnostic. If a non-Claude provider fails after retries, the role falls back to Claude automatically (see provider-dispatch.md).
 
 ### Step 3: Collect and Deduplicate
 

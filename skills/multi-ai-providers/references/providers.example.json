@@ -1,0 +1,35 @@
+{
+  "_comment": "Crucible multi-AI provider config. Copy to .crucible/providers.json (per-project) or ~/.claude/crucible/providers.json (global). Per-project wins when both exist. All fields are optional — missing fields fall back to 'claude'.",
+
+  "default": "claude",
+
+  "roles": {
+    "_comment": "Each role is independently routable. Set to 'claude' | 'gemini' | 'codex'. Omit a role to use 'default'. 'worker' is ALWAYS Claude regardless of what you set here — single-writer invariant.",
+
+    "security":       "gemini",
+    "quality":        "claude",
+    "waste":          "claude",
+    "tests":          "claude",
+    "performance":    "codex",
+
+    "worker":         "claude",
+    "worker_advisor": "codex"
+  },
+
+  "cli": {
+    "_comment": "Per-provider CLI invocation. command_prefix is the exact string that prefixes each Bash call (first token must be 'gemini' or 'codex' for allow-pattern matching). stdin_heredoc is the EOF marker used to feed the prompt via heredoc. timeout_ms is per-call. retry is max attempts before falling back to Claude.",
+
+    "gemini": {
+      "command_prefix": "gemini --model gemini-3-pro-preview --approval-mode default -p",
+      "stdin_heredoc":  "REVIEW_EOF",
+      "timeout_ms":     300000,
+      "retry":          2
+    },
+    "codex": {
+      "command_prefix": "codex exec --model gpt-5.3-codex --sandbox read-only -",
+      "stdin_heredoc":  "REVIEW_EOF",
+      "timeout_ms":     300000,
+      "retry":          2
+    }
+  }
+}

@@ -55,6 +55,17 @@ Skills auto-trigger based on context. When you describe complex work, the agent 
 
 No commands needed. The agent decides when each skill applies.
 
+## Multi-AI (optional)
+
+By default, every dispatched role runs on a Claude subagent. Crucible also supports routing individual roles to **Gemini CLI** or **Codex CLI** for diverse review perspectives and pre-flight advice:
+
+- Create `.crucible/providers.json` (per-project) or `~/.claude/crucible/providers.json` (global) declaring which provider runs each role — for example, `security` on Gemini, `performance` on Codex, everything else on Claude.
+- External CLIs always run read-only (`--sandbox read-only` / `--approval-mode default`). **Only Claude subagents ever write files** — single-writer invariant preserved.
+- If a CLI fails after retries, the role automatically falls back to Claude. The pipeline never stalls on a flaky external provider.
+- `worker_advisor` role can feed read-only pre-flight notes from Gemini/Codex into each Claude worker prompt before code is written.
+
+Without a `providers.json`, behavior is identical to v1.0.0. See the `multi-ai-providers` skill for setup, verification, and troubleshooting.
+
 ## Project State
 
 Crucible maintains state in `.crucible/` per project:

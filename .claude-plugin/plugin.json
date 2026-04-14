@@ -1,14 +1,14 @@
 {
   "name": "crucible",
-  "description": "Where discipline meets firepower. Disciplined development methodology + multi-agent orchestration for Claude Code.",
-  "version": "1.0.0",
+  "description": "Where discipline meets firepower. Disciplined development methodology + multi-agent orchestration for Claude Code, with optional routing to Gemini and Codex.",
+  "version": "1.1.0",
   "author": {
     "name": "zanijr"
   },
   "homepage": "https://github.com/zanijr/crucible",
   "repository": "https://github.com/zanijr/crucible",
   "license": "MIT",
-  "keywords": ["orchestration", "tdd", "code-review", "multi-agent", "skills", "methodology"],
+  "keywords": ["orchestration", "tdd", "code-review", "multi-agent", "multi-ai", "gemini", "codex", "skills", "methodology"],
   "marketplace": true,
   "install": {
     "unix": "git clone https://github.com/zanijr/crucible.git ~/.claude/crucible",

@@ -8,3 +8,6 @@ credentials/
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Crucible per-project state — never commit
+.crucible/

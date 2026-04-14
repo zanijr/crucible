@@ -24,6 +24,7 @@ Do not deviate. Do not work on anything else.
 {conflict_block}
 {steps_block}
 {verify_block}
+{advisor_block}
 
 ## Instructions
 1. Read CLAUDE.md for project conventions before writing any code.
@@ -63,6 +64,7 @@ End your final message with EXACTLY ONE of these status lines:
 | `{conflict_block}` | If `conflicts_with` is non-empty: "This task may conflict with: `task-3`. Coordinate carefully." Otherwise omit. |
 | `{steps_block}` | If `task.steps` exist, format as numbered implementation steps. Otherwise omit. |
 | `{verify_block}` | If `task.verify_command` exists: "Before claiming DONE, you MUST run: `{command}`. Include the FULL output in your final message." Otherwise omit. |
+| `{advisor_block}` | If `roles.worker_advisor` is configured and the advisor CLI returned output for this task, format as: `## Pre-flight advisor notes\n\n<advisor stdout>\n\nThese notes are from a read-only advisor model. Use them as context but exercise your own judgment.` Otherwise omit entirely (no blank line). |
 | `{task_priority}` | `task.priority` |
 
 ## Tips

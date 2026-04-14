@@ -72,6 +72,19 @@ For each task in a wave, dispatch using the **Agent tool**:
 - Dispatch ALL independent tasks in a single message (parallel Agent calls)
 - Each agent works in isolation — include ALL context it needs in the prompt
 
+**Worker dispatch is always Claude.** The single-writer invariant requires that only Claude subagents ever write files and commit. Do not route the `worker` role to Gemini or Codex — their CLIs run read-only.
+
+#### Optional: Pre-flight advisor (multi-AI)
+
+If `.crucible/providers.json` (or `~/.claude/crucible/providers.json`) sets `roles.worker_advisor` to `gemini` or `codex`, run a read-only advisor pass **before** each Claude worker dispatch:
+
+1. For each task about to be dispatched, send the task's title, description, and acceptance criteria to the advisor CLI. Use the Bash invocation shape documented in `../review-pipeline/references/provider-dispatch.md`.
+2. Capture the advisor's stdout (risks, unknowns, suggested approach).
+3. Substitute it into the worker prompt template at the `{advisor_block}` placeholder (see `references/worker-prompt.md`). It appears in the final prompt as a `## Pre-flight advisor notes` section.
+4. Then dispatch the Claude worker as normal.
+
+If `worker_advisor` is unset or the advisor CLI fails (after retries per provider-dispatch.md), proceed without an advisor block — omit the placeholder entirely. Advisor failure is **never** a blocker for worker dispatch.
+
 After each wave completes:
 - Parse each agent's final STATUS line (see `references/status-protocol.md`)
 - Update task status in `.crucible/plan.json`
