@@ -33,7 +33,7 @@ Gemini writes results to stdout. Expected format depends on the role:
 
 ### Known quirks
 
-- **Deprecated `experimental.plan` warning** at startup is non-blocking but appears as a **preamble in stdout** before any response. The dispatcher's parser must scan past it (locate first `[` for JSON arrays). Verified during v1.1 testing on Gemini CLI 0.37.2. To silence the warning entirely: remove `experimental.plan` from `~/.gemini/settings.json`.
+- **Deprecated `experimental.plan` warning** at startup is non-blocking and emitted on **stderr** (not stdout). Verified on Gemini CLI 0.37.2 — stdout stays clean even with the warning active, so the parser is unaffected. The "scan for first `[`" rule is kept defensively in case a future Gemini version moves the warning back to stdout. To silence the stderr noise: remove `experimental.plan` from `~/.gemini/settings.json` (or the system-level Gemini config if `gemini --version` shows the warning despite a clean user config).
 - Gemini sometimes prepends/appends commentary despite prompt instructing JSON-only. When parsing fails, save raw output to `.crucible/reviews/<role>.raw.txt` and retry per `retry` config.
 - **Gemini CLI in non-interactive mode does NOT autonomously run shell commands.** Reviewer prompts that say "run git diff to see changed files" produce hallucination or refusal — always inline the diff into the heredoc body. See `../../review-pipeline/references/provider-dispatch.md` § "Inlining context".
 
@@ -69,7 +69,7 @@ Codex writes results to stdout. Same output conventions as Gemini (JSON for revi
 
 ### Known quirks
 
-- **Session preamble in stdout:** Codex prints a header before the response listing `workdir`, `model`, `provider`, `approval`, `sandbox`, `reasoning effort`, and `session id`. After the response, it prints a `tokens used N` footer. The dispatcher's parser must skip past these (scan for first `[` for JSON arrays).
+- **Session header and footer on stderr (not stdout):** Codex 0.120.0 on Windows prints the session header (`workdir`, `model`, `provider`, `approval`, `sandbox`, `reasoning effort`, `session id`) and the `tokens used N` footer on **stderr**. Stdout contains only the response (e.g., the JSON array). Earlier Crucible drafts incorrectly described these as stdout content; the "scan for first `[`" parse rule is kept defensively against future drift.
 - `--sandbox read-only` suppresses shell commands inside Codex's turns. If you see "tool call blocked" messages in output, that's expected — it just means Codex tried to run something and was correctly prevented. The review/advice itself comes through.
 - **Codex CLI in `exec` mode does NOT autonomously run shell commands either** (read-only sandbox suppresses them). Reviewer prompts must inline the diff into the heredoc body. See `../../review-pipeline/references/provider-dispatch.md` § "Inlining context".
 - Codex output is generally well-formed JSON when asked, but like Gemini may occasionally add commentary. Handle via retry + raw-output fallback.

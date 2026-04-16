@@ -92,12 +92,12 @@ External CLIs produce the same output format as Claude subagents **because the p
 - Reviewers → JSON array of findings (see review-pipeline's Finding Schema).
 - Workers → final message ending in `STATUS: DONE|DONE_WITH_CONCERNS|NEEDS_CONTEXT|BLOCKED`.
 
-Gemini and Codex both emit stdout text. Extract the JSON array / STATUS line by **scanning** stdout — both CLIs may surround the actual response with envelope content:
+Gemini and Codex both emit response content on **stdout**, with envelope content (warnings, session headers, footers) routed to **stderr**. Verified on Gemini CLI 0.37.2 and Codex CLI 0.120.0 (Windows). The dispatcher reads stdout and ignores stderr for parsing purposes.
 
-- **Gemini preamble:** May print a deprecation warning (`The system configuration contains deprecated settings: [experimental.plan]...`) before the response. Non-blocking; just skip past it.
-- **Codex preamble:** Prints a session header (`workdir`, `model`, `provider`, `approval`, `sandbox`, `session id`) before the response, plus a `tokens used` footer after.
+- **Gemini stderr noise:** May print a deprecation warning (e.g., `The system configuration contains deprecated settings: [experimental.plan]...`) on stderr. Cosmetic only — does not affect parsing. To silence: remove `experimental.plan` from `~/.gemini/settings.json` (or the system-level Gemini config if it's there).
+- **Codex stderr noise:** Prints a session header (`workdir`, `model`, `provider`, `approval`, `sandbox`, `session id`) and a `tokens used` footer on stderr. Cosmetic only.
 
-Parse rule: locate the first `[` (for JSON arrays) or the first line matching `^STATUS:` (for worker output) in stdout, and extract from there. Discard everything before. For arrays, locate the matching `]` to bound the extraction.
+Parse rule (defensive, kept simple in case future CLI versions drift back to stdout): locate the first `[` (for JSON arrays) or the first line matching `^STATUS:` (for worker output) in stdout, and extract from there. Discard everything before. For arrays, locate the matching `]` to bound the extraction.
 
 ## Retry and Fallback
 
