@@ -56,17 +56,30 @@ Before routing any role to a non-Claude provider, verify the allow-list is in pl
 
 ### The check
 
-1. Read `~/.claude/settings.local.json` (if it does not exist, treat as empty).
-2. Parse as JSON (fallback: grep the raw text for the two patterns).
-3. Verify the `permissions.allow` array contains **both**:
+Claude Code merges `permissions.allow` from multiple files. The check MUST scan **all** that exist, and pass if the patterns appear in **any** of them (union semantics match Claude Code's own behavior):
+
+1. `~/.claude/settings.json` — user-level
+2. `~/.claude/settings.local.json` — user-level, machine-specific
+3. `./.claude/settings.json` — project-level, shared
+4. `./.claude/settings.local.json` — project-level, gitignored
+
+Procedure:
+
+1. For each of the 4 paths that exists, read it. Parse as JSON (fallback: grep the raw text for the two patterns).
+2. Collect the union of every `permissions.allow` array found.
+3. Verify the union contains **both**:
    - `"Bash(gemini:*)"`
    - `"Bash(codex:*)"`
-4. If either is missing, **halt the dispatch** and emit the following error verbatim to the user:
+4. If either is missing, **halt the dispatch** and emit the following error verbatim to the user (substitute the files actually scanned into the message):
 
 ```
-Multi-AI dispatch halted: allow-list patterns are missing from ~/.claude/settings.local.json.
+Multi-AI dispatch halted: allow-list patterns are missing.
 
-Add these entries to the "permissions.allow" array and retry:
+Scanned: <comma-separated list of existing settings files>
+Missing: <"Bash(gemini:*)" and/or "Bash(codex:*)">
+
+Add the missing entries to the "permissions.allow" array in one of those files
+(recommended: ~/.claude/settings.local.json — user-level, machine-specific) and retry:
 
   "Bash(gemini:*)",
   "Bash(codex:*)"
@@ -74,7 +87,9 @@ Add these entries to the "permissions.allow" array and retry:
 Without them, every CLI dispatch (up to 6 per pipeline) prompts for manual approval, breaking parallel execution. See issue #11 for rationale.
 ```
 
-5. Do not offer to edit `settings.local.json` automatically — users must own their permission configuration.
+5. Do not offer to edit the settings files automatically — users must own their permission configuration.
+
+A runnable reference implementation lives at `tests/regression-allow-list-check.sh` — use it as the source of truth when in doubt about edge cases (comments in JSON, trailing commas, `deny` overrides).
 
 ### Why halt instead of continue-with-prompts
 
