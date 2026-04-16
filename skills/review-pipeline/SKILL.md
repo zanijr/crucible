@@ -43,6 +43,8 @@ For each of the 5 reviewer roles (`security`, `quality`, `waste`, `tests`, `perf
 
 Summary: check `.crucible/providers.json`, fall back to `~/.claude/crucible/providers.json`, fall back to `claude`. If no config exists, every role is `claude` — identical to v1.0.0 behavior.
 
+**If ANY resolved role is `gemini` or `codex`**, run the allow-list pre-flight check from `crucible:multi-ai-providers` § "Pre-flight check" BEFORE Step 2. Halt the entire pipeline with the documented error if the check fails. Do not attempt partial dispatch.
+
 ### Step 2: Dispatch 5 Reviewers in Parallel
 
 Send **5 dispatch calls in a single message** — one per reviewer type. Each reviewer may target Claude (via `Agent` tool), Gemini (via `Bash` tool), or Codex (via `Bash` tool) depending on the resolved provider. See `references/provider-dispatch.md` for the exact invocation shape per provider.

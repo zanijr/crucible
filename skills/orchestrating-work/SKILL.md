@@ -76,7 +76,11 @@ For each task in a wave, dispatch using the **Agent tool**:
 
 #### Optional: Pre-flight advisor (multi-AI)
 
-If `.crucible/providers.json` (or `~/.claude/crucible/providers.json`) sets `roles.worker_advisor` to `gemini` or `codex`, run a read-only advisor pass **before** each Claude worker dispatch:
+If `.crucible/providers.json` (or `~/.claude/crucible/providers.json`) sets `roles.worker_advisor` to `gemini` or `codex`, run a read-only advisor pass **before** each Claude worker dispatch.
+
+**Pre-flight (required once per session):** Before the first Bash dispatch to Gemini/Codex, run the allow-list check from `crucible:multi-ai-providers` § "Pre-flight check". If the check fails, **skip the advisor pass silently** (omit `{advisor_block}`) and proceed with normal Claude worker dispatch — advisor failure must never block the worker. Surface the allow-list error once as a warning so the user can add the patterns for future sessions.
+
+Advisor dispatch procedure:
 
 1. For each task about to be dispatched, send the task's title, description, and acceptance criteria to the advisor CLI. Use the Bash invocation shape documented in `../review-pipeline/references/provider-dispatch.md`.
 2. Capture the advisor's stdout (risks, unknowns, suggested approach).

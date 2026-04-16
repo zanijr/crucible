@@ -50,6 +50,40 @@ Worker dispatch itself is **always** Claude — routing `worker` to anything els
 | `worker_advisor` | orchestrating-work | Read-only pre-flight advice before Claude workers run |
 | `worker` | orchestrating-work | **Always Claude.** Config ignored if set otherwise. |
 
+## Pre-flight check (REQUIRED before any external-CLI dispatch)
+
+Before routing any role to a non-Claude provider, verify the allow-list is in place. This skill MUST run the following check the first time it is invoked in a session, and whenever `review-pipeline` or `orchestrating-work` is about to dispatch to Gemini/Codex for the first time in a session.
+
+### The check
+
+1. Read `~/.claude/settings.local.json` (if it does not exist, treat as empty).
+2. Parse as JSON (fallback: grep the raw text for the two patterns).
+3. Verify the `permissions.allow` array contains **both**:
+   - `"Bash(gemini:*)"`
+   - `"Bash(codex:*)"`
+4. If either is missing, **halt the dispatch** and emit the following error verbatim to the user:
+
+```
+Multi-AI dispatch halted: allow-list patterns are missing from ~/.claude/settings.local.json.
+
+Add these entries to the "permissions.allow" array and retry:
+
+  "Bash(gemini:*)",
+  "Bash(codex:*)"
+
+Without them, every CLI dispatch (up to 6 per pipeline) prompts for manual approval, breaking parallel execution. See issue #11 for rationale.
+```
+
+5. Do not offer to edit `settings.local.json` automatically — users must own their permission configuration.
+
+### Why halt instead of continue-with-prompts
+
+Letting a 5-reviewer parallel dispatch proceed with a missing allow-list causes five sequential approval prompts that block the parent session. The pipeline appears to hang. Halting early with a clear error is strictly less confusing than the alternative.
+
+### When the check passes
+
+Cache the result for the session — don't re-check before every dispatch. Subsequent dispatches in the same session skip straight to dispatch.
+
 ## Setup (first time)
 
 ### Step 1: Verify the CLIs are installed
