@@ -99,21 +99,23 @@ Gemini and Codex both emit stdout text. Extract the JSON array / STATUS line by 
 
 Parse rule: locate the first `[` (for JSON arrays) or the first line matching `^STATUS:` (for worker output) in stdout, and extract from there. Discard everything before. For arrays, locate the matching `]` to bound the extraction.
 
-### Malformed output handling
-
-If the expected JSON or STATUS line is absent from CLI stdout:
-
-- **Reviewers:** treat as `[]` (empty findings) and log the malformed output to `.crucible/reviews/<role>.raw.txt` for manual inspection.
-- **Workers:** treat as `STATUS: DONE_WITH_CONCERNS` per `references/status-protocol.md` rules.
-
 ## Retry and Fallback
 
 Per-provider config (`cli.<provider>.retry`, default `2`):
 
-1. On non-zero exit, timeout, or empty stdout → wait 15s, retry.
+1. On non-zero exit, timeout, empty stdout, or malformed output (no JSON array / STATUS line found in stdout) → wait 15s, retry.
 2. After `retry` attempts exhausted → **fall back to Claude** for that single role. Dispatch via `Agent` tool as if the role had been `claude` all along.
 3. Log fallback to `.crucible/reviews/<role>.fallback.txt` (for reviewers) or `.crucible/PROJECT_STATE.md` (for workers).
 4. Never abort the entire pipeline because one provider failed. The 5-reviewer and worker-dispatch guarantees still hold.
+
+### Malformed output — terminal disposition
+
+If even the Claude fallback fails to produce a parseable JSON array / STATUS line (rare; Claude subagents reliably follow protocol):
+
+- **Reviewers:** treat as `[]` (empty findings) and log the malformed output to `.crucible/reviews/<role>.raw.txt` for manual inspection.
+- **Workers:** treat as `STATUS: DONE_WITH_CONCERNS` per `references/status-protocol.md` rules.
+
+This branch exists as a guarantee that the pipeline never stalls. Reaching it indicates an upstream prompt or protocol bug worth investigating.
 
 ## Safety Invariants
 
