@@ -11,6 +11,19 @@ A Claude Code plugin that combines disciplined development methodology with mult
 git clone https://github.com/zanijr/crucible.git ~/.claude/crucible
 ```
 
+### If you plan to use multi-AI (Gemini / Codex)
+
+> **Required one-time step — skipping this makes every external-CLI dispatch prompt for manual approval.**
+
+Add these two entries to the `permissions.allow` array in `~/.claude/settings.local.json`:
+
+```json
+"Bash(gemini:*)",
+"Bash(codex:*)"
+```
+
+The `multi-ai-providers` skill auto-detects a missing allow-list when you first route a role to an external CLI and surfaces an explicit error with this same command. Default-Claude users can ignore this step entirely.
+
 ## What You Get
 
 ### Methodology Skills (from Superpowers)

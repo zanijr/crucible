@@ -41,9 +41,9 @@ No change from v1.0.0. Always the fallback when a non-Claude provider fails.
 **First-token matching rule (critical):** The `Bash` command's first token MUST be `gemini`. No pipes, no `cd && gemini ...`, no wrappers. This makes `Bash(gemini:*)` allow-pattern match and avoids manual approval prompts per call.
 
 ```bash
-gemini --model gemini-3-pro-preview --approval-mode default -p "Review for correctness. Do NOT commit, push, or modify any files." <<'REVIEW_EOF'
+gemini --model gemini-3-pro-preview --approval-mode default -p "Review for correctness. Do NOT commit, push, or modify any files." <<'CRUCIBLE_EOF_<RANDOM>'
 <prompt text>
-REVIEW_EOF
+CRUCIBLE_EOF_<RANDOM>
 ```
 
 Read `stdout` as the agent output. `--approval-mode default` keeps Gemini read-only.
@@ -53,14 +53,36 @@ Read `stdout` as the agent output. `--approval-mode default` keeps Gemini read-o
 First-token rule: `codex` MUST be the first token.
 
 ```bash
-codex exec --model gpt-5.3-codex --sandbox read-only - <<'REVIEW_EOF'
+codex exec --model gpt-5.3-codex --sandbox read-only - <<'CRUCIBLE_EOF_<RANDOM>'
 Review for correctness. Do NOT commit, push, or modify any files.
 
 <prompt text>
-REVIEW_EOF
+CRUCIBLE_EOF_<RANDOM>
 ```
 
 Read `stdout` as the agent output. `--sandbox read-only` guarantees no file writes.
+
+### Heredoc EOF token — collision safety (CRITICAL)
+
+`<RANDOM>` above is **not a literal** — it is an 8-character hex string the dispatcher MUST generate per-invocation. A fixed token like `REVIEW_EOF` causes silent truncation if the prompt body contains a line matching that token (common in diffs of Crucible's own code, test fixtures, or documentation).
+
+**Rule:** Before forming a Bash call for Gemini/Codex, generate a random 8+ char hex suffix (e.g., from a timestamp hash, UUID, or `openssl rand -hex 4` run mentally). Use `CRUCIBLE_EOF_<hex>` as the heredoc token in BOTH the opening `<<'TOKEN'` and the closing terminator line. The body text is untouched.
+
+**Example of a correctly-formed invocation:**
+
+```bash
+gemini --model gemini-3-pro-preview --approval-mode default -p "Review for correctness." <<'CRUCIBLE_EOF_a7f2e391'
+Here is a diff. Even if the diff contains the string REVIEW_EOF or CRUCIBLE_EOF on its own line, the heredoc survives because the random suffix won't match.
+--- a/foo.sh
++++ b/foo.sh
+@@ ...
++ REVIEW_EOF
+CRUCIBLE_EOF_a7f2e391
+```
+
+**Why single-quoted:** `<<'TOKEN'` suppresses shell expansion inside the body. The token itself is literal text — single-quoting it is defensive, not required.
+
+**Why this rule exists:** Issue #10 — a diff containing `REVIEW_EOF` on its own line caused a 3-retry cascade (~75s waste) + CLI hallucination on truncated input. Claude fallback rescued correctness but not cost. Per-dispatch randomisation makes the collision probability zero in practice.
 
 ### Bash tool call parameters (both Gemini and Codex)
 

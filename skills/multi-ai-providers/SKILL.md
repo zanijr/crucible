@@ -50,6 +50,55 @@ Worker dispatch itself is **always** Claude — routing `worker` to anything els
 | `worker_advisor` | orchestrating-work | Read-only pre-flight advice before Claude workers run |
 | `worker` | orchestrating-work | **Always Claude.** Config ignored if set otherwise. |
 
+## Pre-flight check (REQUIRED before any external-CLI dispatch)
+
+Before routing any role to a non-Claude provider, verify the allow-list is in place. This skill MUST run the following check the first time it is invoked in a session, and whenever `review-pipeline` or `orchestrating-work` is about to dispatch to Gemini/Codex for the first time in a session.
+
+### The check
+
+Claude Code merges `permissions.allow` from multiple files. The check MUST scan **all** that exist, and pass if the patterns appear in **any** of them (union semantics match Claude Code's own behavior):
+
+1. `~/.claude/settings.json` — user-level
+2. `~/.claude/settings.local.json` — user-level, machine-specific
+3. `./.claude/settings.json` — project-level, shared
+4. `./.claude/settings.local.json` — project-level, gitignored
+
+Procedure:
+
+1. For each of the 4 paths that exists, read it. Parse as JSON (fallback: grep the raw text for the two patterns).
+2. Collect the union of every `permissions.allow` array found.
+3. Verify the union contains **both**:
+   - `"Bash(gemini:*)"`
+   - `"Bash(codex:*)"`
+4. If either is missing, **halt the dispatch** and emit the following error verbatim to the user (substitute the files actually scanned into the message):
+
+```
+Multi-AI dispatch halted: allow-list patterns are missing.
+
+Scanned: <comma-separated list of existing settings files>
+Missing: <"Bash(gemini:*)" and/or "Bash(codex:*)">
+
+Add the missing entries to the "permissions.allow" array in one of those files
+(recommended: ~/.claude/settings.local.json — user-level, machine-specific) and retry:
+
+  "Bash(gemini:*)",
+  "Bash(codex:*)"
+
+Without them, every CLI dispatch (up to 6 per pipeline) prompts for manual approval, breaking parallel execution. See issue #11 for rationale.
+```
+
+5. Do not offer to edit the settings files automatically — users must own their permission configuration.
+
+A runnable reference implementation lives at `tests/regression-allow-list-check.sh` — use it as the source of truth when in doubt about edge cases (comments in JSON, trailing commas, `deny` overrides).
+
+### Why halt instead of continue-with-prompts
+
+Letting a 5-reviewer parallel dispatch proceed with a missing allow-list causes five sequential approval prompts that block the parent session. The pipeline appears to hang. Halting early with a clear error is strictly less confusing than the alternative.
+
+### When the check passes
+
+Cache the result for the session — don't re-check before every dispatch. Subsequent dispatches in the same session skip straight to dispatch.
+
 ## Setup (first time)
 
 ### Step 1: Verify the CLIs are installed

@@ -11,10 +11,12 @@ Tested against Gemini CLI `0.37.2`. Install: `npm install -g @google/gemini-cli`
 ### Invocation shape
 
 ```bash
-gemini --model gemini-3-pro-preview --approval-mode default -p "<wrapper instruction>" <<'REVIEW_EOF'
+gemini --model gemini-3-pro-preview --approval-mode default -p "<wrapper instruction>" <<'CRUCIBLE_EOF_<RANDOM>'
 <full prompt body>
-REVIEW_EOF
+CRUCIBLE_EOF_<RANDOM>
 ```
+
+`<RANDOM>` is an 8+ char hex suffix the dispatcher generates per invocation. See `../../review-pipeline/references/provider-dispatch.md` § "Heredoc EOF token — collision safety" for rationale. Do **not** use a fixed token.
 
 ### Flags
 
@@ -23,7 +25,7 @@ REVIEW_EOF
 | `--model gemini-3-pro-preview` | Pins the model. Override in `providers.json` → `cli.gemini.command_prefix` if your Gemini subscription uses a different tier. |
 | `--approval-mode default` | Keeps Gemini read-only. **Do not change.** |
 | `-p "<wrapper>"` | One-line instruction to Gemini. Crucible uses a generic wrapper like `"Review for correctness, best practices, and potential improvements. Do NOT commit, push, or modify any files."` |
-| `<<'REVIEW_EOF' ... REVIEW_EOF` | Heredoc feeds the full specialist prompt (e.g., security-reviewer.md body) via stdin. Single-quoted EOF prevents shell variable expansion. |
+| `<<'CRUCIBLE_EOF_<random>' ... CRUCIBLE_EOF_<random>` | Heredoc feeds the full specialist prompt via stdin. Random suffix prevents collision with the literal string appearing in prompt body (issue #10). Single-quoted EOF prevents shell variable expansion in the body. |
 
 ### Output
 
@@ -46,12 +48,14 @@ Tested against Codex CLI `0.120.0`. Install: `npm install -g @openai/codex-cli`.
 ### Invocation shape
 
 ```bash
-codex exec --model gpt-5.3-codex --sandbox read-only - <<'REVIEW_EOF'
+codex exec --model gpt-5.3-codex --sandbox read-only - <<'CRUCIBLE_EOF_<RANDOM>'
 <wrapper instruction>
 
 <full prompt body>
-REVIEW_EOF
+CRUCIBLE_EOF_<RANDOM>
 ```
+
+`<RANDOM>` is an 8+ char hex suffix the dispatcher generates per invocation (see Gemini section above and `../../review-pipeline/references/provider-dispatch.md`).
 
 ### Flags
 
@@ -61,7 +65,7 @@ REVIEW_EOF
 | `--model gpt-5.3-codex` | Pins the model. Override in `providers.json` → `cli.codex.command_prefix` for your tier. |
 | `--sandbox read-only` | Guarantees Codex cannot write files. **Do not change.** |
 | `-` | Read prompt body from stdin (vs. passing as argument — avoids Windows arg-length limits). |
-| `<<'REVIEW_EOF' ... REVIEW_EOF` | Heredoc. Unlike Gemini, Codex takes the wrapper instruction inside the heredoc body (no `-p` flag). |
+| `<<'CRUCIBLE_EOF_<random>' ... CRUCIBLE_EOF_<random>` | Heredoc. Unlike Gemini, Codex takes the wrapper instruction inside the heredoc body (no `-p` flag). Random suffix prevents issue #10 collision. |
 
 ### Output
 
@@ -86,9 +90,9 @@ Every `Bash` call Crucible makes for a non-Claude provider MUST have the CLI bin
 
 **Correct:**
 ```bash
-gemini --model ... -p "..." <<'REVIEW_EOF'
+gemini --model ... -p "..." <<'CRUCIBLE_EOF_<RANDOM>'
 ...
-REVIEW_EOF
+CRUCIBLE_EOF_<RANDOM>
 ```
 
 **Wrong (won't match allow pattern, prompts user every call):**
@@ -105,7 +109,7 @@ If you need to run Crucible from a non-default cwd, set cwd in the Bash tool inv
 Before trusting Crucible to dispatch correctly, run each CLI manually at a shell and confirm it works standalone:
 
 ```bash
-# Gemini smoke test
+# Gemini smoke test — random token not required for smoke (no prompt-body risk)
 gemini --model gemini-3-pro-preview --approval-mode default -p "Say hello" <<'EOF'
 Test input.
 EOF
@@ -117,3 +121,25 @@ EOF
 ```
 
 If either fails standalone (auth error, model not found, network), Crucible will also fail and fall back to Claude. Fix the standalone case first.
+
+## Heredoc Collision Regression Test (issue #10)
+
+To verify the dispatcher correctly handles prompt bodies containing heredoc-looking strings:
+
+```bash
+# Run this at a shell — substitute a random suffix for <RANDOM>
+gemini --model gemini-3-pro-preview --approval-mode default \
+  -p "Output ONLY the literal text GOT_FULL_INPUT. Nothing else." <<'CRUCIBLE_EOF_<RANDOM>'
+Marker before: BEGIN_PROMPT
+A diff might contain text like REVIEW_EOF on its own line:
+REVIEW_EOF
+And then more text after.
+Marker after: END_PROMPT
+CRUCIBLE_EOF_<RANDOM>
+```
+
+**Expected:** Gemini echoes `GOT_FULL_INPUT` (or equivalent), exit 0, no `command not found` errors on stderr.
+**Failure mode before fix:** Bash exits 127 with `REVIEW_EOF: command not found` leaking to stderr (the old fixed-token dispatcher broke when body contained `REVIEW_EOF`).
+**Equivalent Codex test:** substitute `codex exec --model gpt-5.3-codex --sandbox read-only -` for the `gemini ... -p "..."` prefix and adapt the instruction wrapper into the body.
+
+If this test passes, the random-token mitigation for issue #10 is working.
