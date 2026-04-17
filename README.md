@@ -6,23 +6,44 @@ A Claude Code plugin that combines disciplined development methodology with mult
 
 ## Install
 
+One command, idempotent, safe to rerun for updates:
+
 ```bash
-# Clone to your Claude Code plugins directory
-git clone https://github.com/zanijr/crucible.git ~/.claude/crucible
+git clone https://github.com/zanijr/crucible.git ~/.claude/crucible \
+  && bash ~/.claude/crucible/scripts/install.sh
 ```
 
-### If you plan to use multi-AI (Gemini / Codex)
+The install script:
+1. Clones (or pulls if already installed) to `~/.claude/crucible`
+2. Auto-detects the Gemini / Codex CLIs on your `PATH` and, if present, merges `Bash(gemini:*)` and `Bash(codex:*)` into `permissions.allow` in `~/.claude/settings.local.json` (existing keys preserved, JSON-aware — no clobber)
+3. Reports the final state so you can verify
 
-> **Required one-time step — skipping this makes every external-CLI dispatch prompt for manual approval.**
+Then **restart Claude Code** to pick up the new skill definitions.
 
-Add these two entries to the `permissions.allow` array in `~/.claude/settings.local.json`:
+### Flags
 
-```json
-"Bash(gemini:*)",
-"Bash(codex:*)"
+- `--no-cli` — skip the allow-list setup (pure-Claude install; use this if you'll never route roles to Gemini/Codex)
+- `--force-cli` — add the allow-list even if the CLIs aren't installed yet (useful if you plan to install them later)
+
+### Updating
+
+Rerun the same script — it does a `git pull --ff-only` and re-verifies the allow-list.
+
+```bash
+bash ~/.claude/crucible/scripts/install.sh
 ```
 
-The `multi-ai-providers` skill auto-detects a missing allow-list when you first route a role to an external CLI and surfaces an explicit error with this same command. Default-Claude users can ignore this step entirely.
+### Multi-AI CLIs (optional)
+
+If you want Gemini or Codex as review/advisor providers, install their CLIs separately:
+
+```bash
+npm install -g @google/gemini-cli @openai/codex-cli
+```
+
+Then rerun `scripts/install.sh` — it will detect them and add the allow-list entries.
+
+> If the install script can't write to `~/.claude/settings.local.json` (no `python3` or `node` available), it tells you exactly which patterns to add manually. The `multi-ai-providers` skill also runs a pre-flight check at dispatch time and halts with an actionable error if the patterns are missing.
 
 ## What You Get
 

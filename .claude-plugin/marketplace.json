@@ -8,7 +8,7 @@
     {
       "name": "crucible",
       "description": "Where discipline meets firepower. Disciplined development methodology + multi-agent orchestration for Claude Code, with optional routing to Gemini and Codex.",
-      "version": "1.1.0",
+      "version": "1.1.2",
       "source": "./",
       "author": {
         "name": "zanijr"
