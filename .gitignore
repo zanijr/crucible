@@ -11,3 +11,6 @@ Thumbs.db
 
 # Crucible per-project state — never commit
 .crucible/
+
+# Per-user session memory (session handoffs, local notes) — not part of the shipped plugin
+.claude/memory/
