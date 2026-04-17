@@ -1,7 +1,7 @@
 {
   "name": "crucible",
   "description": "Where discipline meets firepower. Disciplined development methodology + multi-agent orchestration for Claude Code, with optional routing to Gemini and Codex.",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "author": {
     "name": "zanijr"
   },
@@ -11,11 +11,11 @@
   "keywords": ["orchestration", "tdd", "code-review", "multi-agent", "multi-ai", "gemini", "codex", "skills", "methodology"],
   "marketplace": true,
   "install": {
-    "unix": "git clone https://github.com/zanijr/crucible.git ~/.claude/crucible",
-    "windows": "git clone https://github.com/zanijr/crucible.git %USERPROFILE%\\.claude\\crucible"
+    "unix": "git clone https://github.com/zanijr/crucible.git ~/.claude/crucible && bash ~/.claude/crucible/scripts/install.sh",
+    "windows": "git clone https://github.com/zanijr/crucible.git %USERPROFILE%\\.claude\\crucible && bash %USERPROFILE%\\.claude\\crucible\\scripts\\install.sh"
   },
   "update": {
-    "unix": "cd ~/.claude/crucible && git pull --ff-only origin main",
-    "windows": "cd %USERPROFILE%\\.claude\\crucible && git pull --ff-only origin main"
+    "unix": "bash ~/.claude/crucible/scripts/install.sh",
+    "windows": "bash %USERPROFILE%\\.claude\\crucible\\scripts\\install.sh"
   }
 }
