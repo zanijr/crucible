@@ -109,12 +109,6 @@ Crucible maintains state in `.crucible/` per project:
 - `REVIEW_CHECKLIST.md` — Generated review findings
 - `memory/` — Lessons learned and failure logs
 
-## Credits
-
-Crucible combines ideas from:
-
-- [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent — disciplined development methodology
-- [Forge](https://github.com/zbonham/forge) — multi-agent orchestration engine
 
 ## License
 
